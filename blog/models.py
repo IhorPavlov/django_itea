@@ -38,11 +38,73 @@ class Post(models.Model):
     category = models.ForeignKey(Category,
                                  on_delete=models.CASCADE,
                                  related_name='posts')
+
+
     objects = models.Manager()
     published = PostPublishedManager()
+
 
     class Meta:
         ordering = ('-publish', '-created')
 
     def __str__(self):
         return self.title
+
+
+# Дописати модель Коментар(є автор, відноситься до посту),
+class Comment(models.Model):
+    STATUS_CHOICES = (
+        ('draft', 'Draft'),
+        ('published', 'Published'),
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    body = models.TextField(verbose_name='Content')
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    likes = models.ManyToManyField(User, related_name='comment_likes', blank=True)
+    dislikes = models.ManyToManyField(User, related_name='comment_dislikes', blank=True)
+
+    def __str__(self):
+        return self.body
+
+
+# Пост лайк/дизлайк(є автор, відноситься до посту),
+class PostLikeDislike(models.Model):
+    LIKE = 'like'
+    DISLIKE = 'dislike'
+    LIKE_CHOICES = (
+        (LIKE, 'Like'),
+        (DISLIKE, 'Dislike'),
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_likes_dislikes')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='post_likes_dislikes')
+    value = models.CharField(max_length=10, choices=LIKE_CHOICES, default=LIKE)
+
+    def __str__(self):
+        return f'{self.value} {self.post} by {self.author}'
+
+
+# Коментар лайк/дизлайк (є автор, відноситься до коментаря),
+class CommentLikeDislike(models.Model):
+    LIKE = 'like'
+    DISLIKE = 'dislike'
+    LIKE_CHOICES = (
+        (LIKE, 'Like'),
+        (DISLIKE, 'Dislike'),
+    )
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='comment_likes_dislikes')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comment_likes_dislikes')
+    value = models.CharField(max_length=10, choices=LIKE_CHOICES, default=LIKE)
+
+    def __str__(self):
+        return f'{self.value} {self.comment} by {self.author}'
+
+
+# модель підписки на користувача два поля (хто підписався і на кого підписався).
+class Subscription(models.Model):
+    subscriber = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    subscribed_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscribers')
+
+    def __str__(self):
+        return f'{self.subscriber} subscribed to {self.subscribed_to}'
